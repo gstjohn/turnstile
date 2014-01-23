@@ -72,7 +72,7 @@ class Turnstile
      */
     public function can($fromResource, $toResource, $perm)
     {
-        return $this->permissions->checkPermission($fromResource, $toResource, $perm);
+        return (bool)count($this->permissions->getPermission($fromResource, $toResource, $perm));
     }
 
     /**

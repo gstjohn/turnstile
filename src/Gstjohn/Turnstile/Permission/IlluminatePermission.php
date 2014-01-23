@@ -11,13 +11,14 @@ class IlluminatePermission implements PermissionInterface
      * @param  object $fromResource The originating object
      * @param  object $toResource   The subject object
      * @param  string $perms        Permission value to check
+     * @return array  Array containing: ['object_type', 'object_id', 'permission']
      */
     public function getPermission($fromResource, $toResource, $perm)
     {
         // Force to string
         $perm = (string)$perm;
 
-        $permission = DB::table('permissions')
+        $result = DB::table('permissions')
             ->where('source_type', get_class($fromResource))
             ->where('source_id', $fromResource->id)
             ->where('object_type', get_class($toResource))
@@ -25,7 +26,44 @@ class IlluminatePermission implements PermissionInterface
             ->where('permission_type', $perm)
             ->first();
 
-        return $permission;
+        if (count($result) > 0) {
+            return [
+                'objectType' => $result->object_type,
+                'objectId'   => $result->object_id,
+                'permission' => $result->permission_type
+            ];
+        }
+
+        return [];
+    }
+
+    /**
+     * Get all permissions for an object that meet criteria
+     * @param  object $fromResource The originating object
+     * @param  object $toResource   (optional) The subject object. If provided, list will only include permissions between the two objects.
+     * @return array  Array of permissions, each containing: ['object_type', 'object_id', 'permission']
+     */
+    public function getPermissions($fromResource, $toResource = null)
+    {
+        $permissions = DB::table('permissions')
+            ->where('source_type', get_class($fromResource))
+            ->where('source_id', $fromResource->id);
+
+        if (!is_null($toResource)) {
+            $permissions->where('object_type', get_class($toResource))
+                       ->where('object_id', $toResource->id);
+        }
+
+        $data = [];
+        foreach ($permissions->get() as $result) {
+            $data[] = [
+                'objectType' => $result->object_type,
+                'objectId'   => $result->object_id,
+                'permission' => $result->permission_type
+            ];
+        }
+
+        return $data;
     }
 
     /**
